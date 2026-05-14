@@ -1,31 +1,55 @@
 services:
   n8n:
-    image: docker.n8n.io/n8ncloud/n8n
+    image: n8nio/n8n
     container_name: amily-n8n
     restart: unless-stopped
     ports:
-      - "5678:5678"
+    - 5678:5678
     environment:
-      - N8N_HOST=${N8N_HOST:-localhost}
-      - N8N_PORT=${N8N_PORT:-5678}
-      - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
-      - WEBHOOK_URL=${WEBHOOK_URL:-https://n8n.amily.ai/}
-      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Australia/Melbourne}
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
-      - DB_TYPE=sqlite
-      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+    - N8N_HOST=${N8N_HOST:-localhost}
+    - N8N_PORT=${N8N_PORT:-5678}
+    - N8N_PROTOCOL=${N8N_PROTOCOL:-https}
+    - WEBHOOK_URL=${WEBHOOK_URL:-https://n8n.amily.ai/}
+    - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Australia/Melbourne}
+    - N8N_BASIC_AUTH_ACTIVE=true
+    - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER}
+    - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD}
+    - DB_TYPE=sqlite
+    - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+    - AMILY_VOICE_SHARED_SECRET=${AMILY_VOICE_SHARED_SECRET}
+    - CALCOM_API_KEY=${CALCOM_API_KEY}
+    - CLICKUP_API_KEY=${CLICKUP_API_KEY}
+    - CLICKUP_SALES_LIST_ID=${CLICKUP_SALES_LIST_ID}
+    - N8N_PROXY_HOPS=${N8N_PROXY_HOPS}
+    - N8N_BLOCK_ENV_ACCESS_IN_NODE=${N8N_BLOCK_ENV_ACCESS_IN_NODE}
+    - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+    - TWILIO_API_KEY_SID=${TWILIO_API_KEY_SID}
+    - TWILIO_API_KEY_SECRET=${TWILIO_API_KEY_SECRET}
+    - TWILIO_BASIC_AUTH_B64=${TWILIO_BASIC_AUTH_B64}
     volumes:
-      - ./n8n-data:/home/node/.n8n
+    - ./n8n-data:/home/node/.n8n
     deploy:
       resources:
         limits:
           memory: 512M
-          cpus: "1.0"
+          cpus: '1.0'
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:5678/healthz || exit 1"]
+      test:
+      - CMD-SHELL
+      - wget -qO- http://localhost:5678/healthz || exit 1
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: amily-cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+    - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    mem_limit: 128m
+    cpus: 0.25
+    depends_on:
+      n8n:
+        condition: service_healthy
